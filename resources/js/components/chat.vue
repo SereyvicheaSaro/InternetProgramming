@@ -201,8 +201,9 @@
                     .listen('GotMessage', async (e) => {
                         // console.log(e.message.sender_id)
                         var user = this.users.find(user => user.id === e.message.receiver_id);
-                        alert(e.message.text)
+                        // alert(e.message.text)
                         // await getMessages();
+                        this.getLastMessage();
                         if(user){
                             if (this.messageN.hasOwnProperty(user.id)) {
                                 this.messageN[user.id] = (this.messageN[user.id] || 0) + 1;
@@ -223,8 +224,6 @@
                     sender_id: this.currentUser.id,
                     receiver_id: this.chatUser.id,
                     text: this.text,
-                }).then(()=>{
-                    this.getLastMessage();
                 }).catch(response => {
                     console.log(response);
                 });
