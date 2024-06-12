@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { login } from './loginfunction.spec';
 
-test('updateTask', async ({ page }) => {
+test('markAsIncomplete', async ({ page }) => {
     // Step 1: Navigate to the create task page
     await page.goto('http://127.0.0.1:8000/login');
     

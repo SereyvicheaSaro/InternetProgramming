@@ -10,7 +10,7 @@ test('register', async ({ page }) => {
     await page.getByLabel("Name").fill("test");
 
     // ------- Email
-    await page.getByLabel("E-Mail Address").fill("test03@example.com");
+    await page.getByLabel("E-Mail Address").fill("test1@example.com");
 
     // ------- Password
     await page.getByLabel("Password", {exact: true}).fill("12345678");
