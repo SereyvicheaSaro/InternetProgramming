@@ -15,10 +15,12 @@ class Audience extends Model
         'article_id',
         'user_id'
     ];
+    // An audience has one user
     public function user():BelongsTo{
         return $this->belongsTo(User::class);
     }
     
+    // An audience have many comments
     public function comments(): MorphMany{
         return $this->morphMany(Comment::class, 'commentable');
     }

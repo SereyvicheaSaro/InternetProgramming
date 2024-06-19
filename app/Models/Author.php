@@ -16,18 +16,23 @@ class Author extends Model
         'name',
         'user_id'
     ];
+
+    // An author has one user
     public function user():BelongsTo{
         return $this->belongsTo(User::class);
     }
     
+    // An author wrote multiple articles
     public function articles():HasMany{
         return $this->hasMany(Article::class);
     }
 
+    // An author have many comments
     public function comments(): MorphMany{
         return $this->morphMany(Comment::class, "commentable");
     }
 
+    //An author has many audience (use has many through relationship)
     public function audiences(): HasManyThrough{
         return $this->hasManyThrough(Audience::class, Article::class);
     }

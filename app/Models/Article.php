@@ -14,9 +14,13 @@ class Article extends Model
         'name',
         'author_id'
     ];
+
+    // An article have many audiences
     public function audiences() :HasMany{
         return $this->hasMany(Audience::class);
     }
+
+    // An article have many comments
     public function comments() :MorphMany{
         return $this->morphMany(Comment::class, 'commentable');
     }

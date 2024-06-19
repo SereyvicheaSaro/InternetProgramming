@@ -12,10 +12,11 @@ use Illuminate\Support\Str;
 
 class EloquentController extends Controller
 {
-    public function createAuthor(Request $request){
+    public function createAuthor(Request $request)
+    {
         $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string'
+            'username' => 'required|string|max:255',
         ]);
 
         $user = User::create([
@@ -27,27 +28,31 @@ class EloquentController extends Controller
             'user_id' => $user->id,
         ]);
 
-        return response("Auther Created Successfully");
+        return response()->json(['message' => 'Author created '. $user->name], 201);
     }
 
-    public function createArticle(Request $request){
+    public function createArticle(Request $request)
+    {
         $request->validate([
             'name' => 'required|string|max:255',
             'author' => 'required|string',
         ]);
 
-        $author = Author::where('name','=', $request->get('author'))->first();
+        $author = Author::where('name', $request->get('author'))->first();
 
-        Article::create([
-            'name' => $request->get('name'),
-            'author_id' => $author->id
-        ]);
+        if ($author) {
+            Article::create([
+                'name' => $request->get('name'),
+                'author_id' => $author->id,
+            ]);
+            return response()->json(['Article created successfully for author ' . $author->name], 201);
+        }
 
-        return response("Article have Created successfully for author ". $author->name);
-
+        return response()->json(['message' => 'Author not found'], 404);
     }
 
-    public function createAudience(Request $request){
+    public function createAudience(Request $request)
+    {
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -56,82 +61,105 @@ class EloquentController extends Controller
             'name' => Str::lower($request->get('name')),
         ]);
 
-        if($user!=null){
-            Audience::create(['name' => $request->get('name'), 'user_id' => $user->id]);
-            return response("Audience have Created successfully");
+        if ($user) {
+            Audience::create([
+                'name' => $request->get('name'),
+                'user_id' => $user->id,
+            ]);
+
+            return response("Audience created successfully");
         }
-        return response("Failed to create Audience");
+
+        return response("Failed to create audience", 500);
     }
 
-    public function subscribe(Request $request){
+    public function subscribe(Request $request)
+    {
         $request->validate([
-            'name' => "required|string|max:255",
-            'article' => 'required|string|max:255'
+            'name' => 'required|string|max:255',
+            'article' => 'required|array',
+            'article.*' => 'required|string|max:255',
         ]);
 
-        $a = Audience::where('name' , '=', $request->get('name'))->first();
-        $article = Article::where('name' , '=', $request->get('article'))->first();
+        $audience = Audience::where('name', $request->get('name'))->first();
 
-        if($a!=null || $article != null){
-            if($a->article_id==null){
-                $a->article_id = $article->id;
-                $a->save();
-                return response("Audience have Subscribed to article ". $article->id);
-            }else{
-                Audience::create(['name'=>$a->name,'user_id' => $a->user_id, 'article_id'=>$article->id]);
-                return response("Audience have Subscribed to article ". $article->id);
+        if (!$audience) {
+            return response("Audience not found", 404);
+        }
+
+        $articleNames = $request->get('article');
+        $articles = Article::whereIn('name', $articleNames)->get();
+
+        if ($articles->isEmpty()) {
+            return response("None of the articles found", 404);
+        }
+
+        foreach ($articles as $article) {
+            // Check if the audience is already subscribed to this article
+            $existingSubscription = Audience::where('name', $audience->name)
+                                            ->where('article_id', $article->id)
+                                            ->first();
+
+            if (!$existingSubscription) {
+                // Subscribe audience to the article
+                Audience::create([
+                    'name' => $audience->name,
+                    'user_id' => $audience->user_id,
+                    'article_id' => $article->id,
+                ]);
             }
-        }else{
-            return response("Audience or Article does not exist");
         }
 
+        return response("Audience subscribed to articles successfully", 200);
     }
 
-    public function comment(Request $request){
+
+    public function comment(Request $request)
+    {
         $request->validate([
-            'name' => 'string|max:255|required',
-            'comment' => 'required|max:255|string',
-            'comment_type' => 'required|max:255|string',
-            'comment_to' => 'nullable|max:255|string'
+            'name' => 'required|string|max:255',
+            'comment' => 'required|string|max:255',
+            'comment_type' => 'required|string|max:255',
+            'comment_to' => 'nullable|string|max:255'
         ]);
 
-        $author = Author::where('name', '=', $request->get('name'))->first();
-        $audience = Audience::where('name', '=', $request->get('name'))->first();
+        $user = Author::where('name', $request->get('name'))->first() ?? 
+                Audience::where('name', $request->get('name'))->first();
 
-        if (!$audience && !$author) {
-            return response("User with " . $request->get('name') . " does not exist");
+        if (!$user) {
+            return response("User with name " . $request->get('name') . " does not exist", 404);
         }
 
         $comment = new Comment([
             'name' => $request->get('comment'),
-            'user_id' => $author ? $author->user_id : ($audience ? $audience->user_id : null),
+            'user_id' => $user->user_id,
         ]);
 
-        switch($request->get('comment_type')){
+        switch ($request->get('comment_type')) {
             case 'article':
                 $article = Article::where('name', $request->get('comment_to'))->first();
                 if ($article) {
-                    $article->comment()->save($comment);
+                    $article->comments()->save($comment);
                 } else {
-                    return response("Article with name " . $request->get('name') . " does not exist");
+                    return response("Article with name " . $request->get('comment_to') . " does not exist", 404);
                 }
                 break;
 
             case 'audience':
-                $a = Audience::where('name', '=',$request->get('comment_to'))->first();
-                if ($a) {
-                    $a->comment()->save($comment); // Notice the use of `comment()` instead of `comments()`
+                $audience = Audience::where('name', $request->get('comment_to'))->first();
+                if ($audience) {
+                    $audience->comments()->save($comment);
                 } else {
-                    return response("Audience with name " . $request->get('comment_to') . " does not exist");
+                    return response("Audience with name " . $request->get('comment_to') . " does not exist", 404);
                 }
                 break;
 
             case 'author':
-                $a = Author::where('name', '=',$request->get('comment_to'))->first();
-                if ($a) {
-                    $a->comment()->save($comment); // Notice the use of `comment()` instead of `comments()`
+                $author = Author::where('name', $request->get('comment_to'))->first();
+                if ($author) {
+                    $author->comments()->save($comment);
                 } else {
-                    return response("Author with name " . $request->get('comment_to') . " does not exist");
+                    return response("Author with name " . $request->get('comment_to') . " does not exist", 404);
                 }
                 break;
         }
@@ -139,41 +167,54 @@ class EloquentController extends Controller
         return response("Commented Successfully");
     }
 
-    public function getArticles($name){
-        $article = Author::with('article')->where('name', '=',$name)->first();
+    public function getArticles($name)
+    {
+        $author = Author::with('articles')->where('name', $name)->first();
 
-        return $article->article;
-    }
-    public function getAudience($article){
-        $audience = Article::with('audiences')->where('name', '=', $article)->first();
-
-        return $audience->audiences;
-    }
-
-    public function getAudienceByAuthor($author){
-        $author = Author::with('audiences')->where('name', '=', $author)->first();
-        $audience = collect([]);
-
-        foreach($author->audiences as $a){
-            if(!$audience->contains($a->name)){
-                $audience->push($a);
-            }
+        if ($author) {
+            return response($author->articles);
         }
 
-        return $audience->unique('name')->values();
+        return response("Author not found", 404);
     }
 
-    public function getComment($topic){
-        switch($topic){
+    public function getAudience($article)
+    {
+        $article = Article::with('audiences')->where('name', $article)->first();
+
+        if ($article) {
+            return response($article->audiences);
+        }
+
+        return response("Article not found", 404);
+    }
+
+    public function getAudienceByAuthor($authorName)
+    {
+        $author = Author::with('audiences')->where('name', $authorName)->first();
+
+        if ($author) {
+            $uniqueAudiences = $author->audiences->unique('name')->values();
+            return response($uniqueAudiences);
+        }
+
+        return response("Author not found", 404);
+    }
+
+    public function getComment($topic)
+    {
+        switch ($topic) {
             case 'author':
-                $author = Author::with('comment')->get();
-                return $author;
+                $authors = Author::with('comments')->get();
+                return response($authors);
             case 'audience':
-                $audience = Audience::with('comment')->get();
-                return $audience;
+                $audiences = Audience::with('comments')->get();
+                return response($audiences);
             case 'article':
-                $article = Article::with('comment')->get();
-                return $article;
+                $articles = Article::with('comments')->get();
+                return response($articles);
+            default:
+                return response("Invalid topic", 400);
         }
     }
 }
