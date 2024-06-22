@@ -7,6 +7,7 @@ use App\Models\Audience;
 use App\Models\Author;
 use App\Models\Comment;
 use App\Models\User;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -66,51 +67,33 @@ class EloquentController extends Controller
                 'name' => $request->get('name'),
                 'user_id' => $user->id,
             ]);
-
-            return response("Audience created successfully");
+            return response()->json(['message' => 'Audience created successfully'], 201);
         }
-
-        return response("Failed to create audience", 500);
+        return response()->json(['message' => 'Failed to create audience.', 401]);
     }
 
-    public function subscribe(Request $request)
-    {
+    public function subscribe(Request $request){
         $request->validate([
-            'name' => 'required|string|max:255',
-            'article' => 'required|array',
-            'article.*' => 'required|string|max:255',
+            'name' => "required|string|max:255",
+            'article' => 'required|string|max:255'
         ]);
 
-        $audience = Audience::where('name', $request->get('name'))->first();
+        $a = Audience::where('name' , '=', $request->get('name'))->first();
+        $article = Article::where('name' , '=', $request->get('article'))->first();
 
-        if (!$audience) {
-            return response("Audience not found", 404);
-        }
-
-        $articleNames = $request->get('article');
-        $articles = Article::whereIn('name', $articleNames)->get();
-
-        if ($articles->isEmpty()) {
-            return response("None of the articles found", 404);
-        }
-
-        foreach ($articles as $article) {
-            // Check if the audience is already subscribed to this article
-            $existingSubscription = Audience::where('name', $audience->name)
-                                            ->where('article_id', $article->id)
-                                            ->first();
-
-            if (!$existingSubscription) {
-                // Subscribe audience to the article
-                Audience::create([
-                    'name' => $audience->name,
-                    'user_id' => $audience->user_id,
-                    'article_id' => $article->id,
-                ]);
+        if($a!=null || $article != null){
+            if($a->article_id==null){
+                $a->article_id = $article->id;
+                $a->save();
+                return response("Audience have Subscribed to article ". $article->id);
+            }else{
+                Audience::create(['name'=>$a->name,'user_id' => $a->user_id, 'article_id'=>$article->id]);
+                return response()->json(['message' => 'Audience subscribe to article ' . $article->name], 200);
             }
+        }else{
+            return response()->json(['message' => 'Article not found.'], 404);
         }
 
-        return response("Audience subscribed to articles successfully", 200);
     }
 
 
@@ -127,7 +110,7 @@ class EloquentController extends Controller
                 Audience::where('name', $request->get('name'))->first();
 
         if (!$user) {
-            return response("User with name " . $request->get('name') . " does not exist", 404);
+            return response()->json(['message' => 'Uer not found.'], 404);
         }
 
         $comment = new Comment([
@@ -141,7 +124,8 @@ class EloquentController extends Controller
                 if ($article) {
                     $article->comments()->save($comment);
                 } else {
-                    return response("Article with name " . $request->get('comment_to') . " does not exist", 404);
+                    return response()->json(['message'=> 'Article not found.'], 404);
+                    // return response("Article with name " . $request->get('comment_to') . " does not exist", 404);
                 }
                 break;
 
@@ -150,7 +134,8 @@ class EloquentController extends Controller
                 if ($audience) {
                     $audience->comments()->save($comment);
                 } else {
-                    return response("Audience with name " . $request->get('comment_to') . " does not exist", 404);
+                    return response()->json(['message'=> 'Audience not found.'], 404);
+                    // return response("Audience with name " . $request->get('comment_to') . " does not exist", 404);
                 }
                 break;
 
@@ -159,12 +144,12 @@ class EloquentController extends Controller
                 if ($author) {
                     $author->comments()->save($comment);
                 } else {
-                    return response("Author with name " . $request->get('comment_to') . " does not exist", 404);
+                    return response()->json(['message' => 'Author not found.'], 404);
+                    // return response("Author with name " . $request->get('comment_to') . " does not exist", 404);
                 }
                 break;
         }
-
-        return response("Commented Successfully");
+        return response()->json(['message' => 'Comment successfully.'], 201);
     }
 
     public function getArticles($name)
