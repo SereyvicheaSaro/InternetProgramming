@@ -6,7 +6,9 @@ cp .env.example .env
 
 php artisan jwt/secret
 
-php artisan storage:link   
+php artisan key:generate
+
+php artisan storage:link
 
 php artisan migrate --seed
 
