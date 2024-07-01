@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Services\FileUploadController;
 use App\Models\Product;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
@@ -28,9 +29,15 @@ class ProductController extends Controller
             // Handle image upload
             $image = FileUploadController::storeImage($req->file('image'), 'uploads/products');
             $validator['image'] = $image;
+            
+            // Create product with timezone conversion
+            $product = Product::create(array_merge($validator, [
+                'created_at' => Carbon::now('Asia/Phnom_Penh'),
+                'updated_at' => Carbon::now('Asia/Phnom_Penh'),
+            ]));
 
             // Create product
-            $product = Product::create($validator);
+            // $product = Product::create($validator);
 
             return response()->json($product, Response::HTTP_CREATED);
         } catch (ValidationException $e) {
@@ -40,6 +47,30 @@ class ProductController extends Controller
         }
     }
 
+    // Method to add quantity to an existing product
+    public function addStock(Request $req)
+    {
+        try {
+            $validator = $req->validate([
+                'product_code' => 'required|string|exists:products,code',
+                'quantity'     => 'required|integer|min:1',
+            ]);
+
+            // Find the product by code
+            $product = Product::where('code', $validator['product_code'])->firstOrFail();
+
+            // Update the product quantity
+            $product->quantity     += $validator['quantity'];
+            $product->updated_at    = Carbon::now('Asia/Phnom_Penh');
+            $product->save();
+
+            return response()->json($product, Response::HTTP_OK);
+        } catch (ValidationException $e) {
+            return $this->handleValidationException($e);
+        } catch (\Exception $e) {
+            return $this->handleUnexpectedException($e);
+        }
+    }
 
     public function get(Request $req)
     {
@@ -78,8 +109,13 @@ class ProductController extends Controller
             if(!$updateProduct){
                 return response()->json(['message'=>'Product not found'], Response::HTTP_NOT_FOUND);
             }
+             // Update product with timezone conversion
+             $updateProduct->update(array_merge($validator, [
+                'updated_at' => Carbon::now('Asia/Phnom_Penh'),
+            ]));
+
+            // $updateProduct->update($validator);
             
-            $updateProduct->update($validator);
             return response()->json($updateProduct, Response::HTTP_CREATED);
             
         } catch (ValidationException $e) {

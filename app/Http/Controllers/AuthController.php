@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,8 @@ class AuthController extends Controller
                 'role_id'   => $registerUserData['role_id'],
                 'email'     => $registerUserData['email'],
                 'password'  => Hash::make($registerUserData['password']),
+                'created_at'=> Carbon::now('Asia/Phnom_Penh'),
+                'updated_at'=> Carbon::now('Asia/Phnom_Penh'),
             ]);
 
             return response()->json([
