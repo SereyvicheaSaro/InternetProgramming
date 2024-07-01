@@ -18,6 +18,7 @@ Route::group([
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api')->name('logout');
     Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:api')->name('refresh');
     Route::post('/me', [AuthController::class, 'me'])->middleware('auth:api')->name('me');
+    Route::post('/allUser', [AuthController::class, 'allUser'])->middleware('auth:api')->name('allUser');
 });
 
 Route::group([
@@ -33,9 +34,9 @@ Route::group([
 });
 
 Route::group([
-    'middleware'=>'api',
-    'prefix'=>'products'
-],  function(){
+    'middleware' => 'api',
+    'prefix' => 'products'
+], function () {
     Route::post('/', [ProductController::class, 'create'])->middleware(Authorization::class . ':admin');
     Route::get('/', [ProductController::class, 'get'])->middleware(Authorization::class . ':admin,staff');
     Route::get('/{id}', [ProductController::class, 'getById'])->middleware(Authorization::class . ':admin,staff');
@@ -43,5 +44,7 @@ Route::group([
     Route::delete('/{id}', [ProductController::class, 'delete'])->middleware(Authorization::class . ':admin');
 });
 
+
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/total-sales', [OrderController::class, 'totalSales']);
+Route::get('/total-items', [OrderController::class, 'totalItemsOrdered']);

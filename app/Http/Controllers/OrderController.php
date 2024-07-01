@@ -91,6 +91,19 @@ class OrderController extends Controller
         }
     }
 
+    // Method to calculate total items ordered
+    public function totalItemsOrdered(){
+        try {
+            $totalOrdered = Order::count();
+            return response()->json(['total_ordered' => $totalOrdered], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to calculate total items ordered', 
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
     //Generate a unique receipt number
     private function generateReceiptNumber(){
         return rand(100000, 999999);

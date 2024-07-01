@@ -102,6 +102,11 @@ class AuthController extends Controller
         }
     }
 
+    public function allUser(){
+        $users = User::all();
+        return response()->json($users, 200);
+    }
+
     public function logout()
     {
         try {

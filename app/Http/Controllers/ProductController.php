@@ -40,14 +40,23 @@ class ProductController extends Controller
         }
     }
 
-    public function get(){
-        $produtcs = Product::all();
-        return response()->json($produtcs, Response::HTTP_FOUND);
+
+    public function get(Request $req)
+    {
+        // validate name as an input to search the product
+        $name = $req->input('name');
+        if ($name) {    // search product
+            $products = Product::where('name', 'like', '%' . $name . '%')->get();
+            return response()->json($products, Response::HTTP_OK);
+        } else {        //get all product
+            $products = Product::all();
+            return response()->json($products, Response::HTTP_OK);
+        }
     }
 
     public function getById($id){
         $produtcs = Product::find($id);
-        return response()->json($produtcs, Response::HTTP_FOUND);
+        return response()->json($produtcs, Response::HTTP_OK);
     }
 
     public function update(Request $req, $id){

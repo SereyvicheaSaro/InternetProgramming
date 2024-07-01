@@ -27,7 +27,7 @@ class Authorization
 
     public function handle($request, Closure $next, ...$roles)
     {
-        Log::info('RoleMiddleware handle method called');
+        // Log::info('RoleMiddleware handle method called');
         try {
             $user = FacadesJWTAuth::parseToken()->authenticate();
             if (!$user) {
